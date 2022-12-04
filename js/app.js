@@ -1,4 +1,7 @@
 import gsap from '/node_modules/gsap/all.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 
 var APP = {
 
@@ -10,7 +13,16 @@ var APP = {
 
 		var loader = new THREE.ObjectLoader();
 		var camera, scene;
+		let stats; 
+		let composer, renderer, mixer, clock;
 
+		const params = {
+			exposure: 1,
+			bloomStrength: 1.5,
+			bloomThreshold: 0,
+			bloomRadius: 0
+		};
+		
 		var vrButton = VRButton.createButton( renderer ); // eslint-disable-line no-undef
 
 		var events = {};
@@ -98,9 +110,8 @@ var APP = {
 				}
 
 			}
-
+			//BEGIN CUSTOM CODE
 			var hdScreen = scene.getObjectByName( "screen", true );
-			console.log(scene.children);
 			var raycaster = new THREE.Raycaster();
 			var mouse = new THREE.Vector2();
 
@@ -109,30 +120,55 @@ var APP = {
 				mouse.y = - ( e.clientY / window.innerHeight ) * 2 + 1;
 			} );
 			
+
 			function moveCameraToScreen(){
 				gsap.to( camera.position, { duration: 2, z: 1.5, y: 0.50, x: -0.2 } );
 			}
 			
 			function moveScreenToCamera(){
-				gsap.to( hdScreen.position, { duration: 1, z: 0.2 } );
+				gsap.to( hdScreen.position, { duration: 3, z: 0.18 } );
+				document.body.style.transition = "all 500ms ease-in-out";
+				document.body.style.filter = "blur(0px)";
 			}
 
-			window.addEventListener( 'click', function ( event ) {
+			window.addEventListener( 'click', function (  ) {
 				raycaster.setFromCamera(mouse, camera);
 				var intersects = raycaster.intersectObjects( scene.children );
 				for(let i = 0; i < intersects.length; i++) {
-					console.log(intersects[i].object.name);
 					if ( intersects[ i ].object.name === 'screen' ) {
+						document.body.style.filter = "blur(2px)";
 						moveCameraToScreen();
-						moveScreenToCamera();
+						setTimeout(moveScreenToCamera, 2000);
 					}
 				}
 			});
+			let oldx = 0
+			let oldy = 0
+			window.onmousemove = function(ev){
+				let changex = ev.x - oldx;
+				let changey = ev.y - oldy;
+				camera.position.x += changex/7500;
+				camera.position.y += changey/15000;
+				oldx = ev.x;
+				oldy = ev.y;
+			}
 
+			const renderScene = new RenderPass( scene, camera );
+
+			const bloomPass = new UnrealBloomPass( new THREE.Vector2( window.innerWidth, window.innerHeight ), 1.5, 0.4, 0.85 );
+			bloomPass.threshold = params.bloomThreshold;
+			bloomPass.strength = params.bloomStrength;
+			bloomPass.radius = params.bloomRadius;
+
+			composer = new EffectComposer( renderer );
+			composer.addPass( renderScene );
+			composer.addPass( bloomPass );
+
+
+			//END CUSTOM CODE
 			dispatch( events.init, arguments );
-
 		};
-
+		
 		this.setCamera = function ( value ) {
 
 			camera = value;
