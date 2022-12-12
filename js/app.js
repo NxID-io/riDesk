@@ -1,7 +1,5 @@
 import gsap from '/node_modules/gsap/all.js';
-import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
-import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
-import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+//import { customCode } from '/js/custom.js';
 
 var APP = {
 
@@ -13,8 +11,7 @@ var APP = {
 
 		var loader = new THREE.ObjectLoader();
 		var camera, scene;
-		let stats; 
-		let composer, renderer, mixer, clock;
+
 
 		const params = {
 			exposure: 1,
@@ -22,7 +19,7 @@ var APP = {
 			bloomThreshold: 0,
 			bloomRadius: 0
 		};
-		
+
 		var vrButton = VRButton.createButton( renderer ); // eslint-disable-line no-undef
 
 		var events = {};
@@ -110,107 +107,107 @@ var APP = {
 				}
 
 			}
-			//BEGIN CUSTOM CODE
-			var hdScreen = scene.getObjectByName( "screen", true );
+
+			//START CUSTOM CODE
+			var hdScreen = scene.getObjectByName("screen", true);
 			var raycaster = new THREE.Raycaster();
 			var mouse = new THREE.Vector2();
+
+			const video = document.getElementById('video');
+			video.src = "./assets/matrix.mp4";
+			video.load();
+			video.play();
+
+			const videoTexture = new THREE.VideoTexture(video);
+			//videoTexture.minFilter = THREE.LinearFilter;
+			//videoTexture.magFilter = THREE.LinearFilter; 
+			//videoTexture.format = THREE.RGBFormat;
+
+			var videoMaterial = new THREE.MeshBasicMaterial( { 
+				map: videoTexture,
+				side: THREE.DoubleSide,
+				overdraw: true
+			} );
+
+			let videoPlane = new THREE.PlaneGeometry(0.72,0.57);
+			let videoMesh = new THREE.Mesh(videoPlane, videoMaterial);
+			scene.add(videoMesh);
+			videoMesh.position.set(-0.172,0.22,0.2);
 
 			window.addEventListener( 'mousemove', function(e){
 				mouse.x = ( e.clientX / window.innerWidth ) * 2 - 1;
 				mouse.y = - ( e.clientY / window.innerHeight ) * 2 + 1;
 			} );
-			
 
+			let cameraAtScreen = false;
 			function moveCameraToScreen(){
-				gsap.to( camera.position, { duration: 2, z: 1.5, y: 0.50, x: -0.2 } );
+				gsap.to( camera.position, { duration: 1.5, z: 1.5, y: 0.50, x: -0.2 } );
 			}
-			
+
 			function moveScreenToCamera(){
-				gsap.to( hdScreen.position, { duration: 3, z: 0.18 } );
-				document.body.style.transition = "all 500ms ease-in-out";
+				gsap.to( hdScreen.position, { duration: 0, z: 0.18 } );
 				document.body.style.filter = "blur(0px)";
+				document.body.style.transition = "all 0.8s linear";
 			}
 
 			window.addEventListener( 'click', function (  ) {
 				raycaster.setFromCamera(mouse, camera);
 				var intersects = raycaster.intersectObjects( scene.children );
 				for(let i = 0; i < intersects.length; i++) {
-					if ( intersects[ i ].object.name === 'screen' ) {
-						document.body.style.filter = "blur(2px)";
+					if ( intersects[ i ].object.name === 'screen' && cameraAtScreen === false ) {
+						cameraAtScreen = true;
+						document.body.style.filter = "blur(5.0px)";
 						moveCameraToScreen();
-						setTimeout(moveScreenToCamera, 2000);
+						setTimeout(moveScreenToCamera, 1500);
 					}
 				}
 			});
+
 			let oldx = 0
 			let oldy = 0
 			window.onmousemove = function(ev){
 				let changex = ev.x - oldx;
 				let changey = ev.y - oldy;
-				camera.position.x += changex/7500;
-				camera.position.y += changey/15000;
+				camera.position.x += changex/15000;
+				camera.position.y -= changey/25000;
 				oldx = ev.x;
 				oldy = ev.y;
-			}
-
-			const renderScene = new RenderPass( scene, camera );
-
-			const bloomPass = new UnrealBloomPass( new THREE.Vector2( window.innerWidth, window.innerHeight ), 1.5, 0.4, 0.85 );
-			bloomPass.threshold = params.bloomThreshold;
-			bloomPass.strength = params.bloomStrength;
-			bloomPass.radius = params.bloomRadius;
-
-			composer = new EffectComposer( renderer );
-			composer.addPass( renderScene );
-			composer.addPass( bloomPass );
-
-
+			}		
+			
 			//END CUSTOM CODE
+
 			dispatch( events.init, arguments );
+
 		};
 		
 		this.setCamera = function ( value ) {
-
 			camera = value;
 			camera.aspect = this.width / this.height;
 			camera.updateProjectionMatrix();
-
 		};
 
 		this.setScene = function ( value ) {
-
 			scene = value;
-
 		};
 
 		this.setPixelRatio = function ( pixelRatio ) {
-
 			renderer.setPixelRatio( pixelRatio );
-
 		};
 
 		this.setSize = function ( width, height ) {
-
 			this.width = width;
 			this.height = height;
-
 			if ( camera ) {
-
 				camera.aspect = this.width / this.height;
 				camera.updateProjectionMatrix();
-
 			}
-
 			renderer.setSize( width, height );
-
 		};
 
 		function dispatch( array, event ) {
 
 			for ( var i = 0, l = array.length; i < l; i ++ ) {
-
 				array[ i ]( event );
-
 			}
 
 		}
@@ -218,23 +215,14 @@ var APP = {
 		var time, startTime, prevTime;
 
 		function animate() {
-
 			time = performance.now();
-
 			try {
-
 				dispatch( events.update, { time: time - startTime, delta: time - prevTime } );
-
 			} catch ( e ) {
-
 				console.error( ( e.message || e ), ( e.stack || '' ) );
-
 			}
-
 			renderer.render( scene, camera );
-
 			prevTime = time;
-
 		}
 
 		this.play = function () {
