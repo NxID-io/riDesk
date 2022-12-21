@@ -1,5 +1,4 @@
 import gsap from '/node_modules/gsap/all.js';
-//import { customCode } from '/js/custom.js';
 
 var APP = {
 
@@ -11,14 +10,6 @@ var APP = {
 
 		var loader = new THREE.ObjectLoader();
 		var camera, scene;
-
-
-		const params = {
-			exposure: 1,
-			bloomStrength: 1.5,
-			bloomThreshold: 0,
-			bloomRadius: 0
-		};
 
 		var vrButton = VRButton.createButton( renderer ); // eslint-disable-line no-undef
 
@@ -107,21 +98,27 @@ var APP = {
 				}
 
 			}
-
 			//START CUSTOM CODE
 			var hdScreen = scene.getObjectByName("screen", true);
+			var hdCups = scene.getObjectByName("cups", true);
 			var raycaster = new THREE.Raycaster();
 			var mouse = new THREE.Vector2();
+			camera = scene.getObjectByName("mainCamera", true);
 
+			hdCups.material.opacity = 0;
+			hdScreen.material.opacity = 0;
+
+
+			/*
 			const video = document.getElementById('video');
 			video.src = "./assets/matrix.mp4";
 			video.load();
 			video.play();
 
 			const videoTexture = new THREE.VideoTexture(video);
-			//videoTexture.minFilter = THREE.LinearFilter;
-			//videoTexture.magFilter = THREE.LinearFilter; 
-			//videoTexture.format = THREE.RGBFormat;
+			videoTexture.minFilter = THREE.LinearFilter;
+			videoTexture.magFilter = THREE.LinearFilter; 
+			videoTexture.format = THREE.RGBFormat;
 
 			var videoMaterial = new THREE.MeshBasicMaterial( { 
 				map: videoTexture,
@@ -133,6 +130,7 @@ var APP = {
 			let videoMesh = new THREE.Mesh(videoPlane, videoMaterial);
 			scene.add(videoMesh);
 			videoMesh.position.set(-0.172,0.22,0.2);
+			*/
 
 			window.addEventListener( 'mousemove', function(e){
 				mouse.x = ( e.clientX / window.innerWidth ) * 2 - 1;
@@ -140,12 +138,30 @@ var APP = {
 			} );
 
 			let cameraAtScreen = false;
+			let cameraAtCups = false;
+			//Blur background
+			const blurredBGImg = new THREE.TextureLoader().load( './assets/blur.jpg' );
+			const blurredMat = new THREE.MeshBasicMaterial( { map: blurredBGImg } );
+			const blurredBG = new THREE.Mesh( new THREE.PlaneGeometry( 64, 46 ), blurredMat );
+			blurredBG.material.map.encoding = THREE.sRGBEncoding;
+			scene.add( blurredBG );
+			blurredBG.material.transparent = true;
+			blurredBG.material.opacity = 0;
+			//Blur background end
 			function moveCameraToScreen(){
-				gsap.to( camera.position, { duration: 1.5, z: 1.5, y: 0.50, x: -0.2 } );
+				gsap.to( camera.position, { duration: 2.2, z: 12, y: 1.4, x: -0.1, ease: "power3.out" } );
+				gsap.to( hdScreen.material, { duration: 2.0, opacity:1 });
+				gsap.to ( blurredBG.material, { duration: 1.0, opacity:1 })
+				gsap.to ( blurredBG.position, { duration: 1, z:3 })
 			}
-
-			function moveScreenToCamera(){
-				gsap.to( hdScreen.position, { duration: 0, z: 0.18 } );
+			function moveCameraToCups(){
+				gsap.to( camera.position, { duration: 1.6, z: 12, y: -5.4, x: -17, ease: "power1.out" } );
+				gsap.to( hdCups.material, { duration: 1.5, opacity:1 });
+				gsap.to ( blurredBG.material, { duration: 1, opacity:1 })
+				gsap.to ( blurredBG.position, { duration: 1, z:2 })
+			}
+			function createBlur(){
+				//gsap.to( hdScreen.position, { duration: 0, z: 0.18 } );
 				document.body.style.filter = "blur(0px)";
 				document.body.style.transition = "all 0.8s linear";
 			}
@@ -156,58 +172,90 @@ var APP = {
 				for(let i = 0; i < intersects.length; i++) {
 					if ( intersects[ i ].object.name === 'screen' && cameraAtScreen === false ) {
 						cameraAtScreen = true;
-						document.body.style.filter = "blur(5.0px)";
+						document.body.style.filter = "blur(8.0px)";
 						moveCameraToScreen();
-						setTimeout(moveScreenToCamera, 1500);
+						setTimeout(createBlur, 800);
+					}
+					if( intersects[i].object.name === 'cups' && cameraAtCups === false){
+						cameraAtCups = true;
+						document.body.style.filter = "blur(8.0px)";
+						moveCameraToCups();
+						setTimeout(createBlur, 800);
 					}
 				}
 			});
-
+			//move camera to origal position on pressing escape
+			window.addEventListener( 'keydown', function (e) {	
+				if ( e.key === "Escape" ) {
+					cameraAtScreen = false;
+					cameraAtCups = false;
+					gsap.to( camera.position, { duration: 1.6, z: 32, y: 1, x: 0, ease: "power1.in" } );
+					gsap.to( hdScreen.material, { duration: 1.5, opacity:0 });
+					gsap.to( hdCups.material, { duration: 1.5, opacity:0 });
+					gsap.to ( blurredBG.material, { duration: 1, opacity:0 })
+					gsap.to ( blurredBG.position, { duration: 1, z:3 })
+				}
+			});
+			
 			let oldx = 0
 			let oldy = 0
+			/*
 			window.onmousemove = function(ev){
 				let changex = ev.x - oldx;
 				let changey = ev.y - oldy;
-				camera.position.x += changex/15000;
-				camera.position.y -= changey/25000;
+				camera.position.x += changex/30000;
+				camera.position.y -= changey/50000;
 				oldx = ev.x;
 				oldy = ev.y;
 			}		
-			
+			*/
 			//END CUSTOM CODE
-
 			dispatch( events.init, arguments );
 
 		};
-		
+
 		this.setCamera = function ( value ) {
+
 			camera = value;
 			camera.aspect = this.width / this.height;
 			camera.updateProjectionMatrix();
+
 		};
 
 		this.setScene = function ( value ) {
+
 			scene = value;
+
 		};
 
 		this.setPixelRatio = function ( pixelRatio ) {
+
 			renderer.setPixelRatio( pixelRatio );
+
 		};
 
 		this.setSize = function ( width, height ) {
+
 			this.width = width;
 			this.height = height;
+
 			if ( camera ) {
+
 				camera.aspect = this.width / this.height;
 				camera.updateProjectionMatrix();
+
 			}
+
 			renderer.setSize( width, height );
+
 		};
 
 		function dispatch( array, event ) {
 
 			for ( var i = 0, l = array.length; i < l; i ++ ) {
+
 				array[ i ]( event );
+
 			}
 
 		}
@@ -215,14 +263,23 @@ var APP = {
 		var time, startTime, prevTime;
 
 		function animate() {
+
 			time = performance.now();
+
 			try {
+
 				dispatch( events.update, { time: time - startTime, delta: time - prevTime } );
+
 			} catch ( e ) {
+
 				console.error( ( e.message || e ), ( e.stack || '' ) );
+
 			}
+
 			renderer.render( scene, camera );
+
 			prevTime = time;
+
 		}
 
 		this.play = function () {
@@ -276,6 +333,8 @@ var APP = {
 
 		};
 
+		//
+
 		function onKeyDown( event ) {
 
 			dispatch( events.keydown, event );
@@ -305,7 +364,9 @@ var APP = {
 			dispatch( events.pointermove, event );
 
 		}
+
 	}
+
 };
 
 export { APP };

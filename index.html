@@ -18,17 +18,14 @@
 		</style>
 	</head>
 	<body ontouchstart="">
-		<video id="video" style="display: none" loop muted>
-			<source src="assets/matrix.mp4" type="video/webm">
-		</video>
 		<script type="module">
-			import gsap from '/node_modules/gsap/all.js';
+
 			import * as THREE from './js/three.module.js';
 			import { APP } from './js/app.js';
 			import { VRButton } from './js/VRButton.js';
 
-			window.THREE = THREE; 
-			window.VRButton = VRButton; 
+			window.THREE = THREE; // Used by APP Scripts.
+			window.VRButton = VRButton; // Used by APP Scripts.
 
 			var loader = new THREE.FileLoader();
 			loader.load( 'app.json', function ( text ) {
@@ -45,10 +42,10 @@
 					player.setSize( window.innerWidth, window.innerHeight );
 
 				} );
-				
 
 			} );
-			
+
+
 
 		</script>
 	</body>
