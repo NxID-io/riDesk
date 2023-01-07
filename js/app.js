@@ -139,14 +139,21 @@ var APP = {
 
 			let cameraAtScreen = false;
 			let cameraAtCups = false;
-			//Blur background
-			const blurredBGImg = new THREE.TextureLoader().load( './assets/blur.jpg' );
+			//Blur background + banner test
+			const blurredBGImg = new THREE.TextureLoader().load('./assets/blur.jpg');
+			const banner = new THREE.TextureLoader().load('./assets/banner.png');
+			const bannerMaterial = new THREE.MeshBasicMaterial( { map: banner }  );
+			const bannerItem = new THREE.Mesh( new THREE.PlaneGeometry( 2, 3 ), bannerMaterial);
 			const blurredMat = new THREE.MeshBasicMaterial( { map: blurredBGImg } );
 			const blurredBG = new THREE.Mesh( new THREE.PlaneGeometry( 64, 46 ), blurredMat );
 			blurredBG.material.map.encoding = THREE.sRGBEncoding;
 			scene.add( blurredBG );
+			scene.add( bannerItem );
+			
 			blurredBG.material.transparent = true;
 			blurredBG.material.opacity = 0;
+			bannerItem.material.transparent = true;
+			bannerItem.material.opacity = 0;
 			//Blur background end
 			function moveCameraToScreen(){
 				gsap.to( camera.position, { duration: 2.2, z: 12, y: 1.4, x: -0.1, ease: "power3.out" } );
@@ -165,12 +172,17 @@ var APP = {
 				document.body.style.filter = "blur(0px)";
 				document.body.style.transition = "all 0.8s linear";
 			}
+			function dropdownBanner(){
+				bannerItem.position.set(-15,-1,8.01);
+				bannerItem.material.opacity = 1; 
+				gsap.to(bannerItem.position, {duration: 2 , y: -5.5, ease: 'power3.out'} );
+			}
 
 			window.addEventListener( 'click', function (  ) {
 				raycaster.setFromCamera(mouse, camera);
 				var intersects = raycaster.intersectObjects( scene.children );
 				for(let i = 0; i < intersects.length; i++) {
-					if ( intersects[ i ].object.name === 'screen' && cameraAtScreen === false ) {
+					if ( intersects[i].object.name === 'screen' && cameraAtScreen === false ) {
 						cameraAtScreen = true;
 						document.body.style.filter = "blur(8.0px)";
 						moveCameraToScreen();
@@ -181,6 +193,7 @@ var APP = {
 						document.body.style.filter = "blur(8.0px)";
 						moveCameraToCups();
 						setTimeout(createBlur, 800);
+						setTimeout(dropdownBanner, 1200);
 					}
 				}
 			});
@@ -189,22 +202,21 @@ var APP = {
 				if ( e.key === "Escape" ) {
 					cameraAtScreen = false;
 					cameraAtCups = false;
-					gsap.to( camera.position, { duration: 1.6, z: 32, y: 1, x: 0, ease: "power1.in" } );
+					gsap.to( camera.position, { duration: 1.6, z: 32, y: 0, x: 0, ease: "power1.in" } );
 					gsap.to( hdScreen.material, { duration: 1.5, opacity:0 });
 					gsap.to( hdCups.material, { duration: 1.5, opacity:0 });
-					gsap.to ( blurredBG.material, { duration: 1, opacity:0 })
-					gsap.to ( blurredBG.position, { duration: 1, z:3 })
+					gsap.to ( blurredBG.material, { duration: 1.5, opacity:0 })
+					gsap.to ( blurredBG.position, { duration: 1.5, z:1 })
 				}
 			});
-			
+			/*
 			let oldx = 0
 			let oldy = 0
-			/*
 			window.onmousemove = function(ev){
 				let changex = ev.x - oldx;
 				let changey = ev.y - oldy;
-				camera.position.x += changex/30000;
-				camera.position.y -= changey/50000;
+				camera.position.x += changex/10000;
+				camera.position.y -= changey/10000;
 				oldx = ev.x;
 				oldy = ev.y;
 			}		
